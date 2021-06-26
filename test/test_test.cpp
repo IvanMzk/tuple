@@ -6,4 +6,5 @@ TEST_CASE("echo","[test]"){
     using test_::echo;
     REQUIRE(echo("1")=="1");
     REQUIRE(echo("1")!="0");
+    REQUIRE(echo("string")!="String");
 }
