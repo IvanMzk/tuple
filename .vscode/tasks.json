@@ -22,8 +22,22 @@
         },
         {
             "type": "shell",
+            "label": "cmake build Test_selected",
+            "command": "cmake.exe --build ${workspaceFolder}\\build --target Test_selected",
+            "args": [],            
+            "group": "test"
+        },
+        {
+            "type": "shell",
             "label": "Run all tests",
             "command": "${workspaceFolder}\\build\\test\\Test.exe",
+            "args": [],
+            "group": "test"       
+        },
+        {
+            "type": "shell",
+            "label": "Run selected tests",
+            "command": "${workspaceFolder}\\build\\test\\Test_selected.exe",
             "args": [],
             "group": "test"       
         },
@@ -31,6 +45,12 @@
             "label":"All Tests build & run",
             "dependsOrder": "sequence",
             "dependsOn":["cmake generate","cmake build Test","Run all tests"],
+            "group": "test"
+        },
+        {
+            "label":"Selected Tests build & run",
+            "dependsOrder": "sequence",
+            "dependsOn":["cmake generate","cmake build Test_selected","Run selected tests"],
             "group": "test"
         },
         {

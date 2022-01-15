@@ -8,3 +8,4 @@ target_sources(Main PRIVATE
 )
 
 target_sources(Test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/test.cpp)
+target_sources(Test_selected PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/test.cpp)
