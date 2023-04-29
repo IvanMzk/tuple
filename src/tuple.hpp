@@ -1,10 +1,12 @@
-#ifndef TUPLE_FOR_TESTING_HPP_
-#define TUPLE_FOR_TESTING_HPP_
+#ifndef TPL_TUPLE_HPP_
+#define TPL_TUPLE_HPP_
 
 #include <type_traits>
 #include <array>
 
 namespace tpl{
+
+template<typename...> class tuple;
 
 namespace tuple_details{
 
@@ -67,25 +69,12 @@ template<typename T>
     template<typename T> struct unwrap_std_ref_wrapper<std::reference_wrapper<T>>{using type = T&;};
     template<typename T> using unwrap_std_ref_wrapper_t = typename unwrap_std_ref_wrapper<T>::type;
     //tuple_cat helpers
-    template<template<typename...> typename L, typename...Ts> struct list_concat{
-        template<typename, typename...> struct concat;
-        template<typename Dummy> struct concat<Dummy>{using type = L<>;};
-        template<typename Dummy, typename...Us> struct concat<Dummy,L<Us...>>{using type = L<Us...>;};
-        template<typename Dummy, typename...Us, typename...Vs> struct concat<Dummy,L<Us...>,L<Vs...>>{using type = L<Us...,Vs...>;};
-        template<typename Dummy, typename T1, typename T2, typename...Tail> struct concat<Dummy,T1,T2,Tail...>{
-            using type = typename concat<void, typename concat<void, T1,T2>::type, Tail...>::type;
-        };
-        using type = typename concat<void, Ts...>::type;
-    };
-    // template<template<typename...> typename L, typename...Ts> struct list_concat{
-    //     template<typename...> struct concat;
-    //     template<> struct concat<>{using type = L<>;};
-    //     template<typename...Us> struct concat<L<Us...>>{using type = L<Us...>;};
-    //     template<typename...Us, typename...Vs> struct concat<L<Us...>,L<Vs...>>{using type = L<Us...,Vs...>;};
-    //     template<typename T1, typename T2, typename...Tail> struct concat<T1,T2,Tail...>{using type = typename concat<typename concat<T1,T2>::type, Tail...>::type;};
-    //     using type = typename concat<Ts...>::type;
-    // };
-    template<template<typename...> typename L, typename...Ts> using list_concat_t = typename list_concat<L, Ts...>::type;
+    template<typename...> struct concat_type;
+    template<> struct concat_type<>{using type = tuple<>;};
+    template<typename...Us> struct concat_type<tuple<Us...>>{using type = tuple<Us...>;};
+    template<typename...Us, typename...Vs> struct concat_type<tuple<Us...>,tuple<Vs...>>{using type = tuple<Us...,Vs...>;};
+    template<typename T1, typename T2, typename...Tail> struct concat_type<T1,T2,Tail...>{using type = typename concat_type<typename concat_type<T1,T2>::type, Tail...>::type;};
+    template<typename...Ts> using concat_type_t = typename concat_type<Ts...>::type;
     //element offset, tuple offset
     template<template<typename> typename Size, typename...Ts>
     struct make_offset_{
@@ -233,7 +222,6 @@ template<typename...Types>
 class tuple
 {
     template<typename T> using type_adapter_t = tuple_details::type_adapter_t<T>;
-    //using sequence_type = std::make_integer_sequence<std::size_t, sizeof...(Types)>;
     using sequence_type = std::make_integer_sequence<std::size_t, sizeof...(Types)>;
 public:
     using size_type = std::size_t;
@@ -256,20 +244,20 @@ public:
     //copy,move operations
     tuple(const tuple& other)
     {
-        copy_elements_(*this, other, sequence_type{});
+        copy_elements(other, sequence_type{});
     }
     tuple& operator=(const tuple& other)
     {
-        copy_assign_elements_(*this, other, sequence_type{});
+        copy_assign_elements(other, sequence_type{});
         return *this;
     }
     tuple(tuple&& other)
     {
-        move_elements_(*this, std::move(other), sequence_type{});
+        move_elements(std::move(other), sequence_type{});
     }
     tuple& operator=(tuple&& other)
     {
-        move_assign_elements_(*this, std::move(other), sequence_type{});
+        move_assign_elements(std::move(other), sequence_type{});
         return *this;
     }
     //forward arguments converting constructor
@@ -305,7 +293,7 @@ public:
     template<typename...Us, std::enable_if_t<!disable_copy_convert_tuple<Us...>::value,int> = 0>
     explicit tuple(const tuple<Us...>& other)
     {
-        copy_elements_(*this, other, sequence_type{});
+        copy_elements(other, sequence_type{});
     }
     //converting move constructor
     template<typename, typename> struct disable_move_convert_tuple1 : std::false_type{};
@@ -323,7 +311,7 @@ public:
     template<typename...Us, std::enable_if_t<!disable_move_convert_tuple<Us...>::value,int> = 0>
     explicit tuple(tuple<Us...>&& other)
     {
-        move_elements_(*this, std::move(other), sequence_type{});
+        move_elements(std::move(other), sequence_type{});
     }
     //converting assignment
     template<typename...Us> struct disable_assign_convert : std::disjunction<
@@ -334,13 +322,13 @@ public:
     template<typename...Us, std::enable_if_t<!disable_assign_convert<Us...>::value,int> = 0>
     tuple& operator=(const tuple<Us...>& other)
     {
-        copy_assign_elements_(*this, other, sequence_type{});
+        copy_assign_elements(other, sequence_type{});
         return *this;
     }
     template<typename...Us, std::enable_if_t<!disable_assign_convert<Us...>::value,int> = 0>
     tuple& operator=(tuple<Us...>&& other)
     {
-        move_assign_elements_(*this, std::move(other), sequence_type{});
+        move_assign_elements(std::move(other), sequence_type{});
         return *this;
     }
 
@@ -348,23 +336,16 @@ public:
         std::swap(*this, other);
     }
 
-    template<typename...Ts,typename...Vs, std::size_t...I> friend void copy_elements_(tuple<Ts...>& lhs, const tuple<Vs...>& rhs, std::integer_sequence<std::size_t, I...>);
-    template<typename...Ts,typename...Vs, std::size_t...I> friend void copy_assign_elements_(tuple<Ts...>& lhs, const tuple<Vs...>& rhs, std::integer_sequence<std::size_t, I...>);
-    template<typename...Ts,typename...Vs, std::size_t...I> friend void move_elements_(tuple<Ts...>& lhs, tuple<Vs...>&& rhs, std::integer_sequence<std::size_t, I...>);
-    template<typename...Ts,typename...Vs, std::size_t...I> friend void move_assign_elements_(tuple<Ts...>& lhs, tuple<Vs...>&& rhs, std::integer_sequence<std::size_t, I...>);
-    template<typename...Ts,typename...Vs, std::size_t...I> friend bool equals_(const tuple<Ts...>& lhs, const tuple<Vs...>& rhs, std::integer_sequence<std::size_t, I...>);
+private:
+    template<typename...> friend class tuple;
+    template<typename...Ts,typename...Vs> friend bool operator==(const tuple<Ts...>& lhs, const tuple<Vs...>& rhs);
     template<size_type I, typename...Ts> friend tuple_element_t<I,tuple<Ts...>>& get(tuple<Ts...>&);
     template<size_type I, typename...Ts> friend const tuple_element_t<I,tuple<Ts...>>& get(const tuple<Ts...>&);
     template<size_type I, typename...Ts> friend tuple_element_t<I,tuple<Ts...>>&& get(tuple<Ts...>&&);
     template<size_type I, typename...Ts> friend const tuple_element_t<I,tuple<Ts...>>&& get(const tuple<Ts...>&&);
-    template<typename...Tuples> friend tuple_details::list_concat_t<tuple, std::decay_t<Tuples>...> tuple_concat(Tuples&&...tuples_);
-    template<typename Offset, typename...Ts, typename...Vs, std::size_t...I>
-    friend void concat_tuple_elements_(Offset, tuple<Ts...>& this_, const tuple<Vs...>& other_,std::integer_sequence<std::size_t,I...>);
-    template<typename Offset, typename...Ts, typename...Vs, std::size_t...I>
-    friend void concat_tuple_elements_(Offset, tuple<Ts...>& this_, tuple<Vs...>&& other_,std::integer_sequence<std::size_t,I...>);
+    template<typename...Tuples> friend tuple_details::concat_type_t<std::decay_t<Tuples>...> tuple_concat(Tuples&&...tuples_);
 
-private:
-    //tuple_cat constructor
+    //tuple_concat constructor
     enum class tuple_concat_constructor_tag{};
     template<typename...Tuples>
     tuple(tuple_concat_constructor_tag, Tuples&&...tuples)
@@ -439,13 +420,41 @@ private:
     void init_elements_default(std::integer_sequence<size_type, I...>){
         (emplace_element_default<I,type_adapter_t<Types>>(),...);
     }
+    template<typename...Vs, size_type...I>
+    void copy_elements(const tuple<Vs...>& other_, std::integer_sequence<size_type, I...>){
+        (emplace_element<I,tuple_details::type_adapter_t<Types>>(*reinterpret_cast<const tuple_details::type_adapter_t<Vs>*>(other_.template get_<I>())),...);
+    }
+    template<typename...Vs, size_type...I>
+    void move_elements(tuple<Vs...>&& other_, std::integer_sequence<size_type, I...>){
+        (emplace_element<I,tuple_details::type_adapter_t<Types>>(std::move(*reinterpret_cast<tuple_details::type_adapter_t<Vs>*>(other_.template get_<I>()))),...);
+    }
+    template<typename...Vs, size_type...I>
+    void copy_assign_elements(const tuple<Vs...>& other_, std::integer_sequence<size_type, I...>){
+        ((*reinterpret_cast<tuple_details::type_adapter_t<Types>*>(get_<I>()) = *reinterpret_cast<const tuple_details::type_adapter_t<Vs>*>(other_.template get_<I>())),...);
+    }
+    template<typename...Vs, size_type...I>
+    void move_assign_elements(tuple<Vs...>&& other_, std::integer_sequence<size_type, I...>){
+        ((*reinterpret_cast<tuple_details::type_adapter_t<Types>*>(get_<I>()) = std::move(*reinterpret_cast<tuple_details::type_adapter_t<Vs>*>(other_.template get_<I>()))),...);
+    }
+    template<typename...Vs, size_type...I>
+    bool equals(const tuple<Vs...>& other, std::integer_sequence<size_type, I...>)const{
+        return (...&&(static_cast<const Types&>(*reinterpret_cast<const tuple_details::type_adapter_t<Types>*>(get_<I>())) ==
+            static_cast<const Vs&>(*reinterpret_cast<const tuple_details::type_adapter_t<Vs>*>(other.template get_<I>()))));
+    }
+    template<typename Offset, typename...Vs, size_type...I>
+    void concat_tuple_elements(Offset, const tuple<Vs...>& other_,std::integer_sequence<size_type,I...>){
+        (emplace_element<I+Offset::value,tuple_details::type_adapter_t<Vs>>(*reinterpret_cast<const tuple_details::type_adapter_t<Vs>*>(other_.template get_<I>())),...);
+    }
+    template<typename Offset, typename...Vs, size_type...I>
+    void concat_tuple_elements(Offset, tuple<Vs...>&& other_,std::integer_sequence<size_type,I...>){
+        (emplace_element<I+Offset::value,tuple_details::type_adapter_t<Vs>>(std::move(*reinterpret_cast<tuple_details::type_adapter_t<Vs>*>(other_.template get_<I>()))),...);
+    }
     template<size_type...I, typename...Tuples>
     void concat_tuples_elements(std::integer_sequence<size_type, I...>, Tuples&&...tuples){
         using make_tuple_offset = tuple_details::make_offset_<tuple_size, std::decay_t<Tuples>...>;
         (
-            concat_tuple_elements_(
+            concat_tuple_elements(
                 std::integral_constant<std::size_t, make_tuple_offset::template offset<I>()>{},
-                *this,
                 std::forward<Tuples>(tuples),
                 std::make_integer_sequence<std::size_t, tuple_size_v<std::decay_t<Tuples>>>{}
             )
@@ -494,47 +503,17 @@ const tuple_element_t<I,tuple<Ts...>>&& get(const tuple<Ts...>&& t){
     using element_type = tuple_element_t<I,tuple<Ts...>>;
     return static_cast<const element_type&&>(*reinterpret_cast<const tuple_details::type_adapter_t<element_type>*>(t.template get_<I>()));
 }
-//tuple helper friends
-template<typename...Ts,typename...Vs, std::size_t...I>
-void copy_elements_(tuple<Ts...>& this_, const tuple<Vs...>& other_, std::integer_sequence<std::size_t, I...>){
-    (this_.template emplace_element<I,tuple_details::type_adapter_t<Ts>>(*reinterpret_cast<const tuple_details::type_adapter_t<Vs>*>(other_.template get_<I>())),...);
-}
-template<typename...Ts,typename...Vs, std::size_t...I>
-void move_elements_(tuple<Ts...>& this_, tuple<Vs...>&& other_, std::integer_sequence<std::size_t, I...>){
-    (this_.template emplace_element<I,tuple_details::type_adapter_t<Ts>>(std::move(*reinterpret_cast<tuple_details::type_adapter_t<Vs>*>(other_.template get_<I>()))),...);
-}
-template<typename...Ts,typename...Vs, std::size_t...I>
-void copy_assign_elements_(tuple<Ts...>& this_, const tuple<Vs...>& other_, std::integer_sequence<std::size_t, I...>){
-    ((*reinterpret_cast<tuple_details::type_adapter_t<Ts>*>(this_.template get_<I>()) = *reinterpret_cast<const tuple_details::type_adapter_t<Vs>*>(other_.template get_<I>())),...);
-}
-template<typename...Ts,typename...Vs, std::size_t...I>
-void move_assign_elements_(tuple<Ts...>& this_, tuple<Vs...>&& other_, std::integer_sequence<std::size_t, I...>){
-    ((*reinterpret_cast<tuple_details::type_adapter_t<Ts>*>(this_.template get_<I>()) = std::move(*reinterpret_cast<tuple_details::type_adapter_t<Vs>*>(other_.template get_<I>()))),...);
-}
-template<typename...Ts,typename...Vs, std::size_t...I>
-bool equals_(const tuple<Ts...>& lhs, const tuple<Vs...>& rhs, std::integer_sequence<std::size_t, I...>){
-    return (...&&(static_cast<const Ts&>(*reinterpret_cast<const tuple_details::type_adapter_t<Ts>*>(lhs.template get_<I>())) ==
-    static_cast<const Vs&>(*reinterpret_cast<const tuple_details::type_adapter_t<Vs>*>(rhs.template get_<I>()))));
-}
-template<typename Offset, typename...Ts, typename...Vs, std::size_t...I>
-void concat_tuple_elements_(Offset, tuple<Ts...>& this_, const tuple<Vs...>& other_,std::integer_sequence<std::size_t,I...>){
-    (this_.template emplace_element<I+Offset::value,tuple_details::type_adapter_t<Vs>>(*reinterpret_cast<const tuple_details::type_adapter_t<Vs>*>(other_.template get_<I>())),...);
-}
-template<typename Offset, typename...Ts, typename...Vs, std::size_t...I>
-void concat_tuple_elements_(Offset, tuple<Ts...>& this_, tuple<Vs...>&& other_,std::integer_sequence<std::size_t,I...>){
-    (this_.template emplace_element<I+Offset::value,tuple_details::type_adapter_t<Vs>>(std::move(*reinterpret_cast<tuple_details::type_adapter_t<Vs>*>(other_.template get_<I>()))),...);
-}
 //tuple_concat
 template<typename...Tuples>
-tuple_details::list_concat_t<tuple, std::decay_t<Tuples>...> tuple_concat(Tuples&&...tuples){
-    using res_type = tuple_details::list_concat_t<tuple, std::decay_t<Tuples>...>;
+tuple_details::concat_type_t<std::decay_t<Tuples>...> tuple_concat(Tuples&&...tuples){
+    using res_type = tuple_details::concat_type_t<std::decay_t<Tuples>...>;
     return res_type{typename res_type::tuple_concat_constructor_tag{}, std::forward<Tuples>(tuples)...};
 }
 //tuple operators
 template<typename...Ts,typename...Vs>
 bool operator==(const tuple<Ts...>& lhs, const tuple<Vs...>& rhs){
     static_assert(sizeof...(Ts) == sizeof...(Vs), "cannot compare tuples of different sizes");
-    return equals_(lhs,rhs,std::make_integer_sequence<std::size_t, sizeof...(Ts)>{});
+    return lhs.equals(rhs,std::make_integer_sequence<std::size_t, sizeof...(Ts)>{});
 }
 template<typename...Ts,typename...Vs>
 bool operator!=(const tuple<Ts...>& lhs, const tuple<Vs...>& rhs){
