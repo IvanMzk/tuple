@@ -1,19 +1,15 @@
-add_library(echo OBJECT)
-target_include_directories(echo INTERFACE
+add_library(tuple INTERFACE)
+target_include_directories(tuple INTERFACE
     ${${project_name}_SOURCE_DIR}\\src
 )
 
-target_sources(echo PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/echo.cpp
-)
-
-target_compile_features(echo INTERFACE cxx_std_17)
+target_compile_features(tuple INTERFACE cxx_std_17)
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-    target_compile_options(echo INTERFACE /W4 /arch:AVX2 /Zc:__cplusplus "$<$<CONFIG:RELEASE>:/O2>")
+    target_compile_options(tuple INTERFACE /W4 /Zc:__cplusplus "$<$<CONFIG:RELEASE>:/O2>")
 else()
-    target_compile_options(echo INTERFACE -Wall -mavx2 "$<$<CONFIG:RELEASE>:-O3>")
+    target_compile_options(tuple INTERFACE -Wall "$<$<CONFIG:RELEASE>:-O3>")
     if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-        target_compile_options(echo INTERFACE -stdlib=libc++)
+        target_compile_options(tuple INTERFACE -stdlib=libc++)
     else()
     endif()
 endif()
