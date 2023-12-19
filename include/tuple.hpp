@@ -1,3 +1,10 @@
+/*
+* Copyright (c) 2022 Ivan Malezhyk <ivanmzk@gmail.com>
+*
+* Distributed under the Boost Software License, Version 1.0.
+* The full license is in the file LICENSE.txt, distributed with this software.
+*/
+
 #ifndef TPL_TUPLE_HPP_
 #define TPL_TUPLE_HPP_
 
@@ -271,7 +278,6 @@ public:
         disable_forward_args1<tuple,Args...>
     >{};
 
-    //template<typename...Args, std::enable_if_t<forward_args<tuple, Args...>::value,int> =0>
     template<typename...Args, std::enable_if_t<!disable_forward_args<Args...>::value,int> =0>
     explicit tuple(Args&&...args)
     {

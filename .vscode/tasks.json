@@ -6,7 +6,7 @@
         {
             "type": "shell",
             "label": "cmake generate",
-            "command": "cmake.exe -DCMAKE_BUILD_TYPE=Release -G \"Ninja\" -S ${workspaceFolder} -B ${workspaceFolder}\\build",
+            "command": "cmake -S ${workspaceFolder} -B ${workspaceFolder}/build -GNinja -DCMAKE_BUILD_TYPE=Release -DBUILD_TEST=ON",
             "args": [],
             "options": {
                 "cwd": "${workspaceFolder}"
@@ -16,21 +16,14 @@
         {
             "type": "shell",
             "label": "cmake build Test",
-            "command": "cmake -E time cmake -E env NINJA_STATUS=[%e/%f/%t] cmake.exe --build ${workspaceFolder}\\build -j 10 --target Test",
-            "args": [],
-            "group": "test"
-        },
-        {
-            "type": "shell",
-            "label": "cmake build Test with error filter",
-            "command": "cmake.exe --build ${workspaceFolder}\\build -j 10 --target Test | findstr /s /i error",
+            "command": "cmake -E time cmake -E env NINJA_STATUS=[%e/%f/%t] cmake --build ${workspaceFolder}/build -j 10 --target Test",
             "args": [],
             "group": "test"
         },
         {
             "type": "shell",
             "label": "Run tests",
-            "command": "${workspaceFolder}\\build\\test\\Test.exe",
+            "command": "${workspaceFolder}/build/test/Test",
             "args": [],
             "group": "test"
         },
@@ -39,32 +32,6 @@
             "dependsOrder": "sequence",
             "dependsOn":["cmake generate","cmake build Test","Run tests"],
             "group": "test"
-        },
-        {
-            "label":"Tests build & run, error filter",
-            "dependsOrder": "sequence",
-            "dependsOn":["cmake generate","cmake build Test with error filter","Run tests"],
-            "group": "test"
-        },
-        {
-            "type": "shell",
-            "label": "cmake build Main",
-            "command": "cmake.exe --build ${workspaceFolder}\\build --target Main",
-            "args": [],
-            "group": "build"
-        },
-        {
-            "type": "shell",
-            "label": "Run Main",
-            "command": "${workspaceFolder}\\build\\src\\Main.exe",
-            "args": [],
-            "group": "build"
-        },
-        {
-            "label":"Main build & run",
-            "dependsOrder": "sequence",
-            "dependsOn":["cmake generate","cmake build Main","Run Main"],
-            "group": "build"
         }
     ]
 }
