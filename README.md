@@ -4,7 +4,7 @@ Tuple implementation without inheritance.
 
 Interface compatible with std::tuple.
 
-`tuple_element` utilizes tree-based lookup, which gives better compilation time than standart library implementation.
+`tuple_element` utilizes [tree-based lookup](https://odinthenerd.blogspot.com/2017/04/tree-based-lookup-why-kvasirmpl-is.html), which gives better compilation time than standart library implementation.
 
 ## Including into project
 
