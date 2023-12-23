@@ -702,30 +702,40 @@ TEST_CASE("test_empty_tuple_move_operations","[test_tpl]")
     }
 }
 
-//test create_tuple
-TEST_CASE("test_create_tuple","[test_tpl]")
+//test make_tuple
+TEST_CASE("test_make_tuple","[test_tpl]")
 {
     using tpl::tuple;
-    using tpl::create_tuple;
     int i{1};
 
-    REQUIRE(create_tuple() == tuple<>{});
-    REQUIRE(std::is_same_v<decltype(create_tuple()),tuple<>>);
+    REQUIRE(tpl::make_tuple() == tuple<>{});
+    REQUIRE(std::is_same_v<decltype(tpl::make_tuple()),tuple<>>);
 
-    REQUIRE(std::is_same_v<decltype(create_tuple(1)),tuple<int>>);
-    REQUIRE(create_tuple(1) == tuple<int>{1});
+    REQUIRE(std::is_same_v<decltype(tpl::make_tuple(1)),tuple<int>>);
+    REQUIRE(tpl::make_tuple(1) == tuple<int>{1});
 
-    REQUIRE(std::is_same_v<decltype(create_tuple(1,2.0)),tuple<int,double>>);
-    REQUIRE(create_tuple(1,2.0) == tuple<int,double>{1,2.0});
+    REQUIRE(std::is_same_v<decltype(tpl::make_tuple(1,2.0)),tuple<int,double>>);
+    REQUIRE(tpl::make_tuple(1,2.0) == tuple<int,double>{1,2.0});
 
-    REQUIRE(std::is_same_v<decltype(create_tuple(i,2.0)),tuple<int,double>>);
-    REQUIRE(create_tuple(i,2.0) == tuple<int,double>{i,2.0});
+    REQUIRE(std::is_same_v<decltype(tpl::make_tuple(i,2.0)),tuple<int,double>>);
+    REQUIRE(tpl::make_tuple(i,2.0) == tuple<int,double>{i,2.0});
 
-    REQUIRE(std::is_same_v<decltype(create_tuple(std::reference_wrapper<int>{i},2.0)),tuple<int&,double>>);
-    REQUIRE(create_tuple(std::reference_wrapper<int>{i},2.0) == tuple<int&,double>{i,2.0});
+    REQUIRE(std::is_same_v<decltype(tpl::make_tuple(std::reference_wrapper<int>{i},2.0)),tuple<int&,double>>);
+    REQUIRE(tpl::make_tuple(std::reference_wrapper<int>{i},2.0) == tuple<int&,double>{i,2.0});
 
-    REQUIRE(std::is_same_v<decltype(create_tuple(std::vector<int>{1,2,3},2.0)),tuple<std::vector<int>,double>>);
-    REQUIRE(create_tuple(std::vector<int>{1,2,3},2.0) == tuple<std::vector<int>,double>{{1,2,3},2.0});
+    REQUIRE(std::is_same_v<decltype(tpl::make_tuple(std::vector<int>{1,2,3},2.0)),tuple<std::vector<int>,double>>);
+    REQUIRE(tpl::make_tuple(std::vector<int>{1,2,3},2.0) == tuple<std::vector<int>,double>{{1,2,3},2.0});
+}
+
+//test apply
+TEST_CASE("test_apply","[test_tpl]")
+{
+    using tpl::tuple;
+    REQUIRE(apply([](){return 12.34;},tuple{}) == 12.34);
+    REQUIRE(apply([](auto a, auto b, auto c){return a+b+c;},tpl::make_tuple(1,2.2,3)) == 6.2);
+    auto t = tpl::make_tuple(1,2.0,std::vector<float>{3,4,5});
+    auto f = [](auto a, auto b, auto c){return a+b+std::accumulate(c.begin(),c.end(),typename decltype(c)::value_type{0});};
+    REQUIRE(tpl::apply(f,t) == 15.0);
 }
 
 //test tuple swap

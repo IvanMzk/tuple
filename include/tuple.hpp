@@ -218,6 +218,7 @@ template<typename T>
         template<std::size_t I>
         using at = typename lookup_type_tree<type_tree, I, node_size, type_tree_depth>::type;
     };
+
 }   //end of namespace tuple_details
 
 template<typename> struct tuple_size;
@@ -483,9 +484,9 @@ template<std::size_t I> struct tuple_element<I,tuple<>>{
 template<std::size_t I, typename...Ts> struct tuple_element<I,tuple<Ts...>>{
     using type = typename tuple<Ts...>::type_list_indexer::template at<I>;
 };
-//create_tuple, make_tuple
+//make_tuple
 template<typename...Args>
-tuple<tuple_details::unwrap_std_ref_wrapper_t<std::decay_t<Args>>...> create_tuple(Args&&...args){
+tuple<tuple_details::unwrap_std_ref_wrapper_t<std::decay_t<Args>>...> make_tuple(Args&&...args){
     return tuple<tuple_details::unwrap_std_ref_wrapper_t<std::decay_t<Args>>...>{std::forward<Args>(args)...};
 }
 //get by index
@@ -524,6 +525,20 @@ bool operator==(const tuple<Ts...>& lhs, const tuple<Vs...>& rhs){
 template<typename...Ts,typename...Vs>
 bool operator!=(const tuple<Ts...>& lhs, const tuple<Vs...>& rhs){
     return !(lhs==rhs);
+}
+
+namespace tuple_details{
+    //apply helper
+    template<typename F, typename Tuple, std::size_t...I>
+    decltype(auto) apply_helper(F&& f, Tuple&& t, std::index_sequence<I...>){
+        return std::forward<F>(f)(tpl::get<I>(std::forward<Tuple>(t))...);
+    }
+}
+
+//apply
+template<typename F, typename Tuple>
+decltype(auto) apply(F&& f, Tuple&& t){
+    return tuple_details::apply_helper(std::forward<F>(f),std::forward<Tuple>(t),std::make_index_sequence<tuple_size_v<std::decay_t<Tuple>>>{});
 }
 
 }   //end of namespace tpl
