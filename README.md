@@ -38,11 +38,11 @@ int main(int argc, const char* argv[])
     //tuple_element
     using int_type = tpl::tuple_element_t<0,tuple_type>;
     using double_type = tpl::tuple_element_t<2,tuple_type>;
-    //get
-    std::cout<<std::endl<<tpl::get<1>(t);   //abc
-    std::cout<<std::endl<<tpl::get<2>(t);   //2.2
     //tuple_cat
     auto tt = tpl::tuple_cat(t,tpl::make_tuple(std::string{"def"},true),t);
+    //get
+    std::cout<<std::endl<<tpl::get<1>(tt);   //abc
+    std::cout<<std::endl<<tpl::get<3>(tt);   //def
     //operators
     std::cout<<std::endl<<(t==tpl::make_tuple(1,std::string{"abc"},2.2));   //1
     std::cout<<std::endl<<(t!=tpl::make_tuple(1,std::string{"def"},2.2));   //1
