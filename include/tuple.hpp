@@ -545,6 +545,11 @@ template<typename...Args>
 tuple<Args&...> tie(Args&...args){
     return tuple<Args&...>{args...};
 }
+//forward_as_tuple
+template<typename...Args>
+tuple<Args&&...> forward_as_tuple(Args&&...args){
+    return tuple<Args&&...>{std::forward<Args>(args)...};
+}
 
 }   //end of namespace tpl
 

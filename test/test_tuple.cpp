@@ -854,3 +854,20 @@ TEST_CASE("test tie","[test_tpl]")
     REQUIRE(std::is_same_v<decltype(t),decltype(tpl::make_tuple(std::ref(i),std::ref(cd),std::ref(s),std::ref(b),std::ref(p)))>);
     REQUIRE(t==tpl::make_tuple(std::ref(i),std::ref(cd),std::ref(s),std::ref(b),std::ref(p)));
 }
+
+//test forward_as_tuple
+TEST_CASE("test forward_as_tuple","[test_tpl]")
+{
+    using tpl::tuple;
+    REQUIRE(tpl::forward_as_tuple() == tuple{});
+    int i{1};
+    const double cd{2.2};
+    std::string s{"abc"};
+    bool b{true};
+    std::size_t* p{nullptr};
+    auto t = tpl::forward_as_tuple(i,cd,s,b,p);
+    REQUIRE(std::is_same_v<decltype(t),tuple<int&,const double&,std::string&,bool&,std::size_t*&>>);
+    REQUIRE(t==tpl::make_tuple(i,cd,s,b,p));
+    REQUIRE(std::is_same_v<decltype(tpl::forward_as_tuple(i,cd,std::move(s),b,p)),tuple<int&,const double&,std::string&&,bool&,std::size_t*&>>);
+    REQUIRE(std::is_same_v<decltype(tpl::forward_as_tuple(1,2.2,s,b,p)),tuple<int&&,double&&,std::string&,bool&,std::size_t*&>>);
+}
