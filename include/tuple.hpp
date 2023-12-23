@@ -540,6 +540,11 @@ template<typename F, typename Tuple>
 decltype(auto) apply(F&& f, Tuple&& t){
     return tuple_details::apply_helper(std::forward<F>(f),std::forward<Tuple>(t),std::make_index_sequence<tuple_size_v<std::decay_t<Tuple>>>{});
 }
+//tie
+template<typename...Args>
+tuple<Args&...> tie(Args&...args){
+    return tuple<Args&...>{args...};
+}
 
 }   //end of namespace tpl
 

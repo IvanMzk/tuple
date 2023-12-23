@@ -838,3 +838,19 @@ TEST_CASE("test_tuple_cat_cleanup_on_exception","[test_tpl]")
         REQUIRE(dcounter == 6);
     }
 }
+
+//test tie
+TEST_CASE("test tie","[test_tpl]")
+{
+    using tpl::tuple;
+    REQUIRE(tpl::tie() == tuple{});
+    int i{1};
+    const double cd{2.2};
+    std::string s{"abc"};
+    bool b{true};
+    std::size_t* p{nullptr};
+    auto t = tpl::tie(i,cd,s,b,p);
+    REQUIRE(std::is_same_v<decltype(t),tuple<int&,const double&,std::string&,bool&,std::size_t*&>>);
+    REQUIRE(std::is_same_v<decltype(t),decltype(tpl::make_tuple(std::ref(i),std::ref(cd),std::ref(s),std::ref(b),std::ref(p)))>);
+    REQUIRE(t==tpl::make_tuple(std::ref(i),std::ref(cd),std::ref(s),std::ref(b),std::ref(p)));
+}
