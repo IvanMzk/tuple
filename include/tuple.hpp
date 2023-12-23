@@ -350,12 +350,12 @@ private:
     template<size_type I, typename...Ts> friend const tuple_element_t<I,tuple<Ts...>>& get(const tuple<Ts...>&);
     template<size_type I, typename...Ts> friend tuple_element_t<I,tuple<Ts...>>&& get(tuple<Ts...>&&);
     template<size_type I, typename...Ts> friend const tuple_element_t<I,tuple<Ts...>>&& get(const tuple<Ts...>&&);
-    template<typename...Tuples> friend tuple_details::concat_type_t<std::decay_t<Tuples>...> tuple_concat(Tuples&&...tuples_);
+    template<typename...Tuples> friend tuple_details::concat_type_t<std::decay_t<Tuples>...> tuple_cat(Tuples&&...tuples_);
 
-    //tuple_concat constructor
-    enum class tuple_concat_constructor_tag{};
+    //tuple_cat constructor
+    enum class tuple_cat_constructor_tag{};
     template<typename...Tuples>
-    tuple(tuple_concat_constructor_tag, Tuples&&...tuples)
+    tuple(tuple_cat_constructor_tag, Tuples&&...tuples)
     {
         concat_tuples_elements(std::make_integer_sequence<size_type, sizeof...(Tuples)>{}, std::forward<Tuples>(tuples)...);
     }
@@ -510,11 +510,11 @@ const tuple_element_t<I,tuple<Ts...>>&& get(const tuple<Ts...>&& t){
     using element_type = tuple_element_t<I,tuple<Ts...>>;
     return static_cast<const element_type&&>(*reinterpret_cast<const tuple_details::type_adapter_t<element_type>*>(t.template get_<I>()));
 }
-//tuple_concat
+//tuple_cat
 template<typename...Tuples>
-tuple_details::concat_type_t<std::decay_t<Tuples>...> tuple_concat(Tuples&&...tuples){
+tuple_details::concat_type_t<std::decay_t<Tuples>...> tuple_cat(Tuples&&...tuples){
     using res_type = tuple_details::concat_type_t<std::decay_t<Tuples>...>;
-    return res_type{typename res_type::tuple_concat_constructor_tag{}, std::forward<Tuples>(tuples)...};
+    return res_type{typename res_type::tuple_cat_constructor_tag{}, std::forward<Tuples>(tuples)...};
 }
 //tuple operators
 template<typename...Ts,typename...Vs>

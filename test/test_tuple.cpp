@@ -768,32 +768,32 @@ TEST_CASE("test_tuple_swap","[test_tpl]")
     }
 }
 
-//test tuple_concat
-TEST_CASE("test_tuple_concat","[test_tpl]")
+//test tuple_cat
+TEST_CASE("test_tuple_cat","[test_tpl]")
 {
     using tpl::tuple;
-    using tpl::tuple_concat;
+    using tpl::tuple_cat;
     using tpl::get;
 
     tuple<> t1;
     tuple<int> t2{1};
     tuple<int,int> t3{2,3};
     tuple<std::vector<int>,double> t4{{7,8,9},2.0};
-    REQUIRE(tuple_concat() == tuple<>{});
-    REQUIRE(tuple_concat(t1) == tuple<>{});
-    REQUIRE(tuple_concat(t1,t1) == tuple<>{});
-    REQUIRE(tuple_concat(t1,t1,t1) == tuple<>{});
-    REQUIRE(tuple_concat(t1,t2,t3) == tuple<int,int,int>{1,2,3});
-    REQUIRE(tuple_concat(t1,t2,t3,t4) == tuple<int,int,int,std::vector<int>,double>{1,2,3,{7,8,9},2.0});
+    REQUIRE(tuple_cat() == tuple<>{});
+    REQUIRE(tuple_cat(t1) == tuple<>{});
+    REQUIRE(tuple_cat(t1,t1) == tuple<>{});
+    REQUIRE(tuple_cat(t1,t1,t1) == tuple<>{});
+    REQUIRE(tuple_cat(t1,t2,t3) == tuple<int,int,int>{1,2,3});
+    REQUIRE(tuple_cat(t1,t2,t3,t4) == tuple<int,int,int,std::vector<int>,double>{1,2,3,{7,8,9},2.0});
     REQUIRE(!get<0>(t4).empty());
-    REQUIRE(tuple_concat(t1,t2,t3,std::move(t4)) == tuple<int,int,int,std::vector<int>,double>{1,2,3,{7,8,9},2.0});
+    REQUIRE(tuple_cat(t1,t2,t3,std::move(t4)) == tuple<int,int,int,std::vector<int>,double>{1,2,3,{7,8,9},2.0});
     REQUIRE(get<0>(t4).empty());
 }
 
-TEST_CASE("test_tuple_concat_cleanup_on_exception","[test_tpl]")
+TEST_CASE("test_tuple_cat_cleanup_on_exception","[test_tpl]")
 {
     using tpl::tuple;
-    using tpl::tuple_concat;
+    using tpl::tuple_cat;
     using test_tuple_::dlogger;
     int dcounter{0};
     dlogger logger{&dcounter};
@@ -805,15 +805,15 @@ TEST_CASE("test_tuple_concat_cleanup_on_exception","[test_tpl]")
         tuple<dlogger,dlogger> t1{logger,logger};
         REQUIRE(dcounter == 0);
         {
-            REQUIRE_THROWS(tuple_concat(t0,t1));
+            REQUIRE_THROWS(tuple_cat(t0,t1));
         }
         REQUIRE(dcounter == 0);
         {
-            REQUIRE_THROWS(tuple_concat(t1,t0));
+            REQUIRE_THROWS(tuple_cat(t1,t0));
         }
         REQUIRE(dcounter == 2);
         {
-            REQUIRE_THROWS(tuple_concat(t1,t1,t0));
+            REQUIRE_THROWS(tuple_cat(t1,t1,t0));
         }
         REQUIRE(dcounter == 6);
     }
@@ -825,15 +825,15 @@ TEST_CASE("test_tuple_concat_cleanup_on_exception","[test_tpl]")
         tuple<dlogger,dlogger> t1{logger,logger};
         REQUIRE(dcounter == 0);
         {
-            REQUIRE_THROWS(tuple_concat(std::move(t0),t1));
+            REQUIRE_THROWS(tuple_cat(std::move(t0),t1));
         }
         REQUIRE(dcounter == 0);
         {
-            REQUIRE_THROWS(tuple_concat(t1,std::move(t0)));
+            REQUIRE_THROWS(tuple_cat(t1,std::move(t0)));
         }
         REQUIRE(dcounter == 2);
         {
-            REQUIRE_THROWS(tuple_concat(t1,t1,std::move(t0)));
+            REQUIRE_THROWS(tuple_cat(t1,t1,std::move(t0)));
         }
         REQUIRE(dcounter == 6);
     }
