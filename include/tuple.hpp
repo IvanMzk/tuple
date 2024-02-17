@@ -15,6 +15,11 @@ namespace tpl{
 
 template<typename...> class tuple;
 
+template<typename> struct tuple_size;
+template<std::size_t, typename> struct tuple_element;
+template<typename T> inline constexpr std::size_t tuple_size_v = tuple_size<T>::value;
+template<std::size_t I, typename T> using tuple_element_t = typename tuple_element<I,T>::type;
+
 namespace tuple_details{
 
 template<typename> inline constexpr bool always_false = false;
@@ -83,23 +88,90 @@ template<typename T>
     template<typename T1, typename T2, typename...Tail> struct concat_type<T1,T2,Tail...>{using type = typename concat_type<typename concat_type<T1,T2>::type, Tail...>::type;};
     template<typename...Ts> using concat_type_t = typename concat_type<Ts...>::type;
     //element offset, tuple offset
+    template<typename...> struct alignment_of_first;
+    template<typename T, typename...Ts>
+    struct alignment_of_first<T,Ts...>{
+        static constexpr std::size_t value = alignof(T);
+    };
+    template<>
+    struct alignment_of_first<>{
+        static constexpr std::size_t value = 1;
+    };
+
+    template<typename...Ts>
+    struct size_of_last{
+        template<typename T> struct tag_{static constexpr std::size_t value = sizeof(T);};
+        static constexpr std::size_t value = (tag_<Ts>::value,...);
+    };
+    template<>
+    struct size_of_last<>{
+        static constexpr std::size_t value = 0;
+    };
+
+    template<std::size_t A>
+    constexpr std::size_t nearest_greater_multiple(std::size_t n){
+        static_assert(A != 0);
+        static_assert((A&(A-1))  == 0);
+        if (n%A==0){
+            return n==0 ? A : n;
+        }else{
+            return (n & ~(A-1)) + A;
+        }
+    }
+
     template<template<typename> typename Size, typename...Ts>
     struct make_offset_{
-        template<std::size_t I, typename T_, typename...Ts_>
-        static constexpr std::size_t offset_(){
+        template<std::size_t I, typename T0_>
+        static constexpr std::size_t offset_(std::size_t prev_off){
+            return prev_off;
+        }
+        template<std::size_t I, typename T0_, typename T1_, typename...Ts_>
+        static constexpr std::size_t offset_(std::size_t prev_off){
             if constexpr (I == 0){
-                return 0;
+                return prev_off;
             }else{
-                return Size<T_>::value+offset_<I-1,Ts_...>();
+                return offset_<I-1,T1_,Ts_...>(nearest_greater_multiple<alignof(T1_)>(prev_off+sizeof(T0_)));
             }
         }
         template<std::size_t I>
         static constexpr std::size_t offset(){
-            return offset_<I,Ts...>();
+            return offset_<I,Ts...>(0);
         }
     };
+
+    // template<template<typename> typename Size, typename...Ts>
+    // struct make_offset_{
+    //     template<std::size_t I, typename T_, typename...Ts_>
+    //     static constexpr std::size_t offset_(){
+    //         if constexpr (I == 0){
+    //             return 0;
+    //         }else{
+    //             return Size<T_>::value+offset_<I-1,Ts_...>();
+    //         }
+    //     }
+    //     template<std::size_t I>
+    //     static constexpr std::size_t offset(){
+    //         return offset_<I,Ts...>();
+    //     }
+    // };
     template<typename T> struct object_size{static constexpr std::size_t value = sizeof(T);};
     template<typename...Ts> using make_element_offset = make_offset_<object_size,Ts...>;
+    template<typename...Ts> using new_make_element_offset = make_offset_<object_size,Ts...>;
+
+    template<std::size_t I, std::size_t S, std::size_t...Ss>
+    constexpr std::size_t cumsum(){
+        if constexpr (I==0){
+            return 0;
+        }else{
+            return S+cumsum<I-1,Ss...>();
+        }
+    }
+
+    template<std::size_t I, typename...Tuple>
+    constexpr std::size_t tuple_size_cumsum(){
+        return cumsum<I,tuple_size_v<Tuple>...>();
+    }
+
 
     //type list indexing helpers
     template<typename, typename...> struct split_list_2;
@@ -220,11 +292,6 @@ template<typename T>
     };
 
 }   //end of namespace tuple_details
-
-template<typename> struct tuple_size;
-template<std::size_t, typename> struct tuple_element;
-template<typename T> inline constexpr std::size_t tuple_size_v = tuple_size<T>::value;
-template<std::size_t I, typename T> using tuple_element_t = typename tuple_element<I,T>::type;
 
 template<typename...Types>
 class tuple
@@ -360,17 +427,18 @@ private:
         concat_tuples_elements(std::make_integer_sequence<size_type, sizeof...(Tuples)>{}, std::forward<Tuples>(tuples)...);
     }
 
-    static constexpr size_type make_size(){
-        if constexpr (sizeof...(Types) == 0){
-            return 0;
-        }else{
-            return (...+tuple_details::object_size<type_adapter_t<Types>>::value);
-        }
-    }
     template<size_type...I>
     static constexpr auto make_offsets(std::integer_sequence<size_type, I...>){
         using make_element_offset = tuple_details::make_element_offset<type_adapter_t<Types>...>;
-        return std::array<size_type, make_size()>{make_element_offset::template offset<I>()...};
+        return std::array<size_type, sizeof...(Types)>{make_element_offset::template offset<I>()...};
+    }
+    static constexpr size_type make_size(){
+        using make_element_offset = tuple_details::make_element_offset<type_adapter_t<Types>...>;
+        if constexpr (sizeof...(Types) == 0){
+            return 0;
+        }else{
+            return make_element_offset::template offset<sizeof...(Types)-1>()+tuple_details::size_of_last<type_adapter_t<Types>...>::value;
+        }
     }
 
     template<size_type I>
@@ -448,28 +516,28 @@ private:
         return (...&&(static_cast<const Types&>(*reinterpret_cast<const tuple_details::type_adapter_t<Types>*>(get_<I>())) ==
             static_cast<const Vs&>(*reinterpret_cast<const tuple_details::type_adapter_t<Vs>*>(other.template get_<I>()))));
     }
-    template<typename Offset, typename...Vs, size_type...I>
-    void concat_tuple_elements(Offset, const tuple<Vs...>& other_,std::integer_sequence<size_type,I...>){
-        (emplace_element<I+Offset::value,tuple_details::type_adapter_t<Vs>>(*reinterpret_cast<const tuple_details::type_adapter_t<Vs>*>(other_.template get_<I>())),...);
-    }
+
     template<typename Offset, typename...Vs, size_type...I>
     void concat_tuple_elements(Offset, tuple<Vs...>&& other_,std::integer_sequence<size_type,I...>){
         (emplace_element<I+Offset::value,tuple_details::type_adapter_t<Vs>>(std::move(*reinterpret_cast<tuple_details::type_adapter_t<Vs>*>(other_.template get_<I>()))),...);
     }
+    template<typename Offset, typename...Vs, size_type...I>
+    void concat_tuple_elements(Offset, const tuple<Vs...>& other_,std::integer_sequence<size_type,I...>){
+        (emplace_element<I+Offset::value,tuple_details::type_adapter_t<Vs>>(*reinterpret_cast<const tuple_details::type_adapter_t<Vs>*>(other_.template get_<I>())),...);
+    }
     template<size_type...I, typename...Tuples>
     void concat_tuples_elements(std::integer_sequence<size_type, I...>, Tuples&&...tuples){
-        using make_tuple_offset = tuple_details::make_offset_<tuple_size, std::decay_t<Tuples>...>;
         (
             concat_tuple_elements(
-                std::integral_constant<std::size_t, make_tuple_offset::template offset<I>()>{},
+                std::integral_constant<std::size_t, tuple_details::tuple_size_cumsum<I,std::decay_t<Tuples>...>()>{},
                 std::forward<Tuples>(tuples),
                 std::make_integer_sequence<std::size_t, tuple_size_v<std::decay_t<Tuples>>>{}
             )
         ,...);
     }
 
-    static constexpr std::array<size_type, make_size()> offsets_{make_offsets(sequence_type{})};
-    std::array<std::byte,make_size()> elements_;
+    static constexpr std::array<size_type, sizeof...(Types)> offsets_{make_offsets(sequence_type{})};
+    alignas(tuple_details::alignment_of_first<type_adapter_t<Types>...>) std::array<std::byte,make_size()> elements_;
 };
 
 //tuple_size

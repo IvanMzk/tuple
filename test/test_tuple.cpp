@@ -4,6 +4,27 @@
 #include "catch.hpp"
 #include "tuple.hpp"
 
+//tuple details tests
+
+TEST_CASE("test_make_offset", "[test_make_offset]")
+{
+    struct A{};
+    struct alignas(2) B{};
+    struct alignas(64) C{};
+
+    using tpl::tuple_details::new_make_element_offset;
+    REQUIRE(new_make_element_offset<C>::offset<0>() == 0);
+
+    REQUIRE(new_make_element_offset<char,int,A,double,B,B,C>::offset<0>() == 0);
+    REQUIRE(new_make_element_offset<char,int,A,double,B,B,C>::offset<1>() == 4);
+    REQUIRE(new_make_element_offset<char,int,A,double,B,B,C>::offset<2>() == 8);
+    REQUIRE(new_make_element_offset<char,int,A,double,B,B,C>::offset<3>() == 16);
+    REQUIRE(new_make_element_offset<char,int,A,double,B,B,C>::offset<4>() == 24);
+    REQUIRE(new_make_element_offset<char,int,A,double,B,B,C>::offset<5>() == 26);
+    REQUIRE(new_make_element_offset<char,int,A,double,B,B,C>::offset<6>() == 64);
+}
+
+
 //tuple tests
 namespace test_tuple_{
 
@@ -870,4 +891,22 @@ TEST_CASE("test forward_as_tuple","[test_tpl]")
     REQUIRE(t==tpl::make_tuple(i,cd,s,b,p));
     REQUIRE(std::is_same_v<decltype(tpl::forward_as_tuple(i,cd,std::move(s),b,p)),tuple<int&,const double&,std::string&&,bool&,std::size_t*&>>);
     REQUIRE(std::is_same_v<decltype(tpl::forward_as_tuple(1,2.2,s,b,p)),tuple<int&&,double&&,std::string&,bool&,std::size_t*&>>);
+}
+
+//test alignment
+TEST_CASE("test_tuple_elements_alignment","[test_tpl]")
+{
+    using tpl::tuple;
+    struct A{};
+    struct alignas(2) B{};
+    struct alignas(64) C{};
+
+    auto t = tpl::make_tuple('a',1,A{},2.2,B{},B{},C{});
+    REQUIRE(reinterpret_cast<std::uintptr_t>(&tpl::get<0>(t))%alignof(char) == 0);
+    REQUIRE(reinterpret_cast<std::uintptr_t>(&tpl::get<1>(t))%alignof(int) == 0);
+    REQUIRE(reinterpret_cast<std::uintptr_t>(&tpl::get<2>(t))%alignof(A) == 0);
+    REQUIRE(reinterpret_cast<std::uintptr_t>(&tpl::get<3>(t))%alignof(double) == 0);
+    REQUIRE(reinterpret_cast<std::uintptr_t>(&tpl::get<4>(t))%alignof(B) == 0);
+    REQUIRE(reinterpret_cast<std::uintptr_t>(&tpl::get<5>(t))%alignof(B) == 0);
+    REQUIRE(reinterpret_cast<std::uintptr_t>(&tpl::get<6>(t))%alignof(C) == 0);
 }
