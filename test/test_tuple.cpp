@@ -902,6 +902,7 @@ TEST_CASE("test_tuple_elements_alignment","[test_tpl]")
     struct alignas(64) C{};
 
     auto t = tpl::make_tuple('a',1,A{},2.2,B{},B{},C{});
+
     REQUIRE(reinterpret_cast<std::uintptr_t>(&tpl::get<0>(t))%alignof(char) == 0);
     REQUIRE(reinterpret_cast<std::uintptr_t>(&tpl::get<1>(t))%alignof(int) == 0);
     REQUIRE(reinterpret_cast<std::uintptr_t>(&tpl::get<2>(t))%alignof(A) == 0);

@@ -99,6 +99,15 @@ template<typename T>
     };
 
     template<typename...Ts>
+    struct max_alignment{
+        static constexpr std::size_t value = std::max({alignof(Ts)...});
+    };
+    template<>
+    struct max_alignment<>{
+        static constexpr std::size_t value = 1;
+    };
+
+    template<typename...Ts>
     struct size_of_last{
         template<typename T> struct tag_{static constexpr std::size_t value = sizeof(T);};
         static constexpr std::size_t value = (tag_<Ts>::value,...);
@@ -139,21 +148,6 @@ template<typename T>
         }
     };
 
-    // template<template<typename> typename Size, typename...Ts>
-    // struct make_offset_{
-    //     template<std::size_t I, typename T_, typename...Ts_>
-    //     static constexpr std::size_t offset_(){
-    //         if constexpr (I == 0){
-    //             return 0;
-    //         }else{
-    //             return Size<T_>::value+offset_<I-1,Ts_...>();
-    //         }
-    //     }
-    //     template<std::size_t I>
-    //     static constexpr std::size_t offset(){
-    //         return offset_<I,Ts...>();
-    //     }
-    // };
     template<typename T> struct object_size{static constexpr std::size_t value = sizeof(T);};
     template<typename...Ts> using make_element_offset = make_offset_<object_size,Ts...>;
     template<typename...Ts> using new_make_element_offset = make_offset_<object_size,Ts...>;
@@ -537,7 +531,7 @@ private:
     }
 
     static constexpr std::array<size_type, sizeof...(Types)> offsets_{make_offsets(sequence_type{})};
-    alignas(tuple_details::alignment_of_first<type_adapter_t<Types>...>) std::array<std::byte,make_size()> elements_;
+    alignas(tuple_details::max_alignment<type_adapter_t<Types>...>::value) std::array<std::byte,make_size()> elements_;
 };
 
 //tuple_size
