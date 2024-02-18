@@ -1,5 +1,6 @@
 #include <tuple>
 #include <iostream>
+#include <numeric>
 #include <sstream>
 #include "catch.hpp"
 #include "tuple.hpp"
@@ -793,22 +794,20 @@ TEST_CASE("test_tuple_swap","[test_tpl]")
 TEST_CASE("test_tuple_cat","[test_tpl]")
 {
     using tpl::tuple;
-    using tpl::tuple_cat;
-    using tpl::get;
 
     tuple<> t1;
     tuple<int> t2{1};
     tuple<int,int> t3{2,3};
     tuple<std::vector<int>,double> t4{{7,8,9},2.0};
-    REQUIRE(tuple_cat() == tuple<>{});
-    REQUIRE(tuple_cat(t1) == tuple<>{});
-    REQUIRE(tuple_cat(t1,t1) == tuple<>{});
-    REQUIRE(tuple_cat(t1,t1,t1) == tuple<>{});
-    REQUIRE(tuple_cat(t1,t2,t3) == tuple<int,int,int>{1,2,3});
-    REQUIRE(tuple_cat(t1,t2,t3,t4) == tuple<int,int,int,std::vector<int>,double>{1,2,3,{7,8,9},2.0});
-    REQUIRE(!get<0>(t4).empty());
-    REQUIRE(tuple_cat(t1,t2,t3,std::move(t4)) == tuple<int,int,int,std::vector<int>,double>{1,2,3,{7,8,9},2.0});
-    REQUIRE(get<0>(t4).empty());
+    REQUIRE(tpl::tuple_cat() == tuple<>{});
+    REQUIRE(tpl::tuple_cat(t1) == tuple<>{});
+    REQUIRE(tpl::tuple_cat(t1,t1) == tuple<>{});
+    REQUIRE(tpl::tuple_cat(t1,t1,t1) == tuple<>{});
+    REQUIRE(tpl::tuple_cat(t1,t2,t3) == tuple<int,int,int>{1,2,3});
+    REQUIRE(tpl::tuple_cat(t1,t2,t3,t4) == tuple<int,int,int,std::vector<int>,double>{1,2,3,{7,8,9},2.0});
+    REQUIRE(!tpl::get<0>(t4).empty());
+    REQUIRE(tpl::tuple_cat(t1,t2,t3,std::move(t4)) == tuple<int,int,int,std::vector<int>,double>{1,2,3,{7,8,9},2.0});
+    REQUIRE(tpl::get<0>(t4).empty());
 }
 
 TEST_CASE("test_tuple_cat_cleanup_on_exception","[test_tpl]")
